@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/router'; // Importar useRouter
+import Image from 'next/image'; // Para agregar imágenes de manera eficiente
+import logo from '../../public/logo.png'; // Importar el logo desde la carpeta public
 
 export default function Home() {
   const router = useRouter(); // Instanciamos el router
@@ -10,8 +12,9 @@ export default function Home() {
   const [carnet, setCarnet] = useState('');
 
   const handleLogin = async (e) => {
-    e.preventDefault();
+    e.preventDefault(); // Evitar que la página se recargue al hacer submit
 
+    // Hacer la solicitud al servidor para validar el login
     const response = await fetch('/api/login', {
       method: 'POST',
       headers: {
@@ -23,17 +26,14 @@ export default function Home() {
     const data = await response.json();
     setMessage(data.msg);
 
+    // Si el login es exitoso, redirigir a UserQR
     if (data.ok) {
-      console.log('Rol:', data.rol);  // Imprime el rol
-      console.log('Número de carnet:', data.carnet);  // Imprime el número de carnet
-
-      // Guardar los datos en el estado
       setRole(data.rol);
       setCarnet(data.carnet);
 
-      // Redirigir a UserQR y pasar los datos como estado
+      // Redirigir a UserQR y pasar los datos como query params
       router.push({
-        pathname: '/UserQR', // Ruta hacia la página UserQR
+        pathname: '/UserQR',  // Ruta hacia la página UserQR
         query: {
           ci,
           phone,
@@ -45,9 +45,21 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen flex justify-center items-center bg-gray-100">
-      <form onSubmit={handleLogin} className="space-y-6 bg-white p-8 rounded-lg shadow-lg max-w-sm w-full">
-        <h1 className="text-2xl font-semibold text-center text-gray-700">Iniciar Sesión</h1>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-green-50">
+      {/* Logo */}
+      <div className="mb-8">
+        <Image
+          src={logo}  // Asegúrate de que la imagen esté en /public
+          alt="Logo"
+          width={150}
+          height={150}
+          objectFit="contain"
+        />
+      </div>
+
+      {/* Formulario de login */}
+      <form onSubmit={handleLogin} className="w-full max-w-sm bg-white p-8 rounded-lg shadow-lg space-y-6">
+        <h1 className="text-3xl font-semibold text-center text-green-700">Iniciar Sesión</h1>
 
         {/* Input CI */}
         <div>
@@ -76,8 +88,11 @@ export default function Home() {
         </div>
 
         {/* Botón de Enviar */}
-        <button type="submit" className="w-full bg-blue-600 text-white p-3 rounded-lg hover:bg-blue-700 transition duration-200">
-          Iniciar sesión
+        <button
+          type="submit"
+          className="w-full bg-green-600 text-white p-3 rounded-lg hover:bg-green-700 transition duration-200"
+        >
+          Ingresar
         </button>
 
         {/* Mensaje de Error o Éxito */}
@@ -87,17 +102,6 @@ export default function Home() {
           </p>
         )}
       </form>
-
-      {/* Mostrar los datos recopilados */}
-      <div className="mt-8 text-center">
-        <h2 className="text-lg font-semibold text-gray-700">Datos del Usuario</h2>
-        <div className="mt-4 text-sm text-gray-600">
-          <p><strong>CI:</strong> {ci}</p>
-          <p><strong>Teléfono:</strong> {phone}</p>
-          <p><strong>Rol:</strong> {role}</p> {/* Mostrar rol */}
-          <p><strong>ID del Usuario:</strong> {carnet}</p> {/* Mostrar ID (carnet) */}
-        </div>
-      </div>
     </div>
   );
 }
