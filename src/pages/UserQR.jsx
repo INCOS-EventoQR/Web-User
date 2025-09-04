@@ -19,6 +19,8 @@ export default function UserQR() {
   const router = useRouter();
   const { ci, phone, role, carnet } = router.query;
   const [userData, setUserData] = useState(null);
+  const [timeRemaining, setTimeRemaining] = useState(15); // Tiempo restante en segundos
+  const [progress, setProgress] = useState(100); // Barra de progreso (porcentaje)
   const captureRef = useRef(null);
 
   const SECRET_KEY = 'mi_clave_secreta';
@@ -36,6 +38,32 @@ export default function UserQR() {
         console.error(e);
       }
     })();
+
+    // Cierre de sesión automático después de 15 segundos
+    const timeout = setTimeout(() => {
+      handleLogout();  // Llama la función de logout
+    }, 15000); // 15 segundos
+
+    // Barra de progreso
+    const interval = setInterval(() => {
+      setTimeRemaining((prevTime) => {
+        if (prevTime > 0) {
+          const newTime = prevTime - 1;
+          const newProgress = (newTime / 15) * 100;
+          setProgress(newProgress);
+          return newTime;
+        } else {
+          clearInterval(interval); // Detener el intervalo cuando el tiempo se agote
+          return 0;
+        }
+      });
+    }, 1000); // Actualizar cada segundo
+
+    // Limpiar el timeout y el intervalo si el componente se desmonta
+    return () => {
+      clearTimeout(timeout);
+      clearInterval(interval);
+    };
   }, [carnet]);
 
   const handleDownload = async () => {
@@ -102,6 +130,17 @@ export default function UserQR() {
             <li>Segundo escaneo: registra tu refrigerio.</li>
           </ol>
         </div>
+      </div>
+
+      {/* Barra de progreso */}
+      <div className="w-full max-w-sm mt-4">
+        <div className="h-2 bg-gray-200 rounded-full">
+          <div
+            className="h-full bg-green-700 rounded-full"
+            style={{ width: `${progress}%` }}
+          ></div>
+        </div>
+        <p className="text-center mt-2">{timeRemaining} segundos restantes</p>
       </div>
 
       {/* Botones de Descarga y Cerrar sesión al lado */}
