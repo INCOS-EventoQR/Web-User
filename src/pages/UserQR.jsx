@@ -53,6 +53,14 @@ export default function UserQR() {
     link.click();
   };
 
+  const handleLogout = () => {
+    // Limpiar los datos de localStorage o de cualquier otro estado global
+    localStorage.removeItem("userData");
+
+    // Redirigir al usuario a la página de login
+    router.push('/');
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#f0fdf4] p-4 flex-col">
       <div
@@ -96,14 +104,22 @@ export default function UserQR() {
         </div>
       </div>
 
-      {/* Botón fuera del bloque capturable */}
-      <div className="mt-6 text-center">
+      {/* Botones de Descarga y Cerrar sesión al lado */}
+      <div className="mt-6 flex justify-between w-full max-w-sm">
         <button
           onClick={handleDownload}
-          className="px-4 py-2 rounded-lg font-medium shadow-sm transition-colors"
+          className="px-4 py-2 rounded-lg font-medium shadow-sm transition-colors w-1/2 mr-2"
           style={{ backgroundColor: '#166534', color: '#ffffff' }}  // green-700
         >
           Descargar imagen
+        </button>
+
+        <button
+          onClick={handleLogout}
+          className="px-4 py-2 rounded-lg font-medium shadow-sm transition-colors w-1/2 ml-2"
+          style={{ backgroundColor: '#e53e3e', color: '#ffffff' }}  // rojo-600
+        >
+          Cerrar sesión
         </button>
       </div>
     </div>
