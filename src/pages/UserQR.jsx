@@ -139,7 +139,6 @@ export default function UserQR() {
           <p><strong style={{ color: '#111827' }}>Guarda este código QR</strong></p>
           <ol className="list-decimal list-inside mx-auto mt-2 max-w-xs text-left">
             <li>Primer escaneo: registra tu ingreso.</li>
-            <li>Segundo escaneo: registra tu refrigerio.</li>
           </ol>
         </div>
       </div>

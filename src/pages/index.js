@@ -79,7 +79,7 @@ export default function Home() {
           <label htmlFor="phone" className="block text-sm font-medium text-gray-600">Teléfono</label>
           <input
             id="phone"
-            type="text"
+            type="password"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             required
