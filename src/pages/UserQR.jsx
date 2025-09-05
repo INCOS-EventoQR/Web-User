@@ -1,9 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
-import Image from 'next/image';
 
-// importación dinámica para evitar SSR issues
+// importación dinámica para evitar SSR
 const html2canvasPromise = () => import('html2canvas');
 
 const korgalEncrypt = (text, key) => {
@@ -18,10 +16,14 @@ const korgalEncrypt = (text, key) => {
 export default function UserQR() {
   const router = useRouter();
   const { ci, phone, role, carnet } = router.query;
+
   const [userData, setUserData] = useState(null);
-  const [timeRemaining, setTimeRemaining] = useState(15); // Tiempo restante en segundos
-  const [progress, setProgress] = useState(100); // Barra de progreso (porcentaje)
+  const [timeRemaining, setTimeRemaining] = useState(15);
+  const [progress, setProgress] = useState(100);
+  const [qrReady, setQrReady] = useState(false);
+
   const captureRef = useRef(null);
+  const qrImgRef = useRef(null);
 
   const SECRET_KEY = 'mi_clave_secreta';
   const encryptedCarnet = korgalEncrypt(carnet, SECRET_KEY);
@@ -29,6 +31,7 @@ export default function UserQR() {
 
   useEffect(() => {
     if (!carnet) return;
+
     (async () => {
       try {
         const resp = await fetch(`/api/guest?id=${carnet}`);
@@ -39,27 +42,20 @@ export default function UserQR() {
       }
     })();
 
-    // Cierre de sesión automático después de 15 segundos
-    const timeout = setTimeout(() => {
-      handleLogout();  // Llama la función de logout
-    }, 15000); // 15 segundos
+    const timeout = setTimeout(() => handleLogout(), 15000);
 
-    // Barra de progreso
     const interval = setInterval(() => {
-      setTimeRemaining((prevTime) => {
-        if (prevTime > 0) {
-          const newTime = prevTime - 1;
-          const newProgress = (newTime / 15) * 100;
-          setProgress(newProgress);
+      setTimeRemaining((t) => {
+        if (t > 0) {
+          const newTime = t - 1;
+          setProgress((newTime / 15) * 100);
           return newTime;
-        } else {
-          clearInterval(interval); // Detener el intervalo cuando el tiempo se agote
-          return 0;
         }
+        clearInterval(interval);
+        return 0;
       });
-    }, 1000); // Actualizar cada segundo
+    }, 1000);
 
-    // Limpiar el timeout y el intervalo si el componente se desmonta
     return () => {
       clearTimeout(timeout);
       clearInterval(interval);
@@ -67,14 +63,21 @@ export default function UserQR() {
   }, [carnet]);
 
   const handleDownload = async () => {
-    const { default: html2canvas } = await html2canvasPromise();
-    if (!captureRef.current) return;
+    if (!captureRef.current || !qrReady) return;
 
-    const canvas = await html2canvas(captureRef.current, {
-      backgroundColor: '#ffffff',   // fuerza fondo blanco
-      scale: 2,                     // mejor resolución
+    const { default: html2canvas } = await html2canvasPromise();
+    const node = captureRef.current;
+
+    const canvas = await html2canvas(node, {
+      backgroundColor: '#ffffff',
       useCORS: true,
+      imageTimeout: 0,
+      scale: window.devicePixelRatio || 2,
+      // Fuerza a usar el tamaño real del contenedor para evitar recortes/zoom
+      width: node.scrollWidth,
+      height: node.scrollHeight,
     });
+
     const link = document.createElement('a');
     link.href = canvas.toDataURL('image/png');
     link.download = 'usuario-qr.png';
@@ -82,10 +85,7 @@ export default function UserQR() {
   };
 
   const handleLogout = () => {
-    // Limpiar los datos de localStorage o de cualquier otro estado global
-    localStorage.removeItem("userData");
-
-    // Redirigir al usuario a la página de login
+    localStorage.removeItem('userData');
     router.push('/');
   };
 
@@ -95,15 +95,12 @@ export default function UserQR() {
         ref={captureRef}
         className="w-full max-w-sm rounded-lg shadow-lg p-8 flex flex-col justify-between"
         style={{
-          backgroundColor: '#ffffff',       // HEX
-          color: '#111827',                  // texto gris-900
-          border: '1px solid #e5e7eb',       // border-gray-200
+          backgroundColor: '#ffffff',
+          color: '#111827',
+          border: '1px solid #e5e7eb',
         }}
       >
-        <h1
-          className="text-2xl font-semibold text-center mb-4"
-          style={{ color: '#166534' }}       // green-700
-        >
+        <h1 className="text-2xl font-semibold text-center mb-4" style={{ color: '#166534' }}>
           Datos del Usuario
         </h1>
 
@@ -120,7 +117,22 @@ export default function UserQR() {
         )}
 
         <div className="mt-6 flex justify-center">
-          <Image src={qrCodeUrl} alt="Código QR" width={300} height={300} />
+          <img
+            ref={qrImgRef}
+            src={qrCodeUrl}
+            alt="Código QR"
+            width={300}
+            height={300}
+            crossOrigin="anonymous"
+            onLoad={() => setQrReady(true)}
+            style={{
+              display: 'block',
+              width: '300px',
+              height: '300px',
+              objectFit: 'contain',
+              imageRendering: 'pixelated',
+            }}
+          />
         </div>
 
         <div className="mt-6 text-center text-sm" style={{ color: '#6b7280' }}>
@@ -137,18 +149,19 @@ export default function UserQR() {
         <div className="h-2 bg-gray-200 rounded-full">
           <div
             className="h-full bg-green-700 rounded-full"
-            style={{ width: `${progress}%` }}
-          ></div>
+            style={{ width: `${Math.max(0, Math.min(100, progress))}%` }}
+          />
         </div>
         <p className="text-center mt-2">{timeRemaining} segundos restantes</p>
       </div>
 
-      {/* Botones de Descarga y Cerrar sesión al lado */}
+      {/* Botones */}
       <div className="mt-6 flex justify-between w-full max-w-sm">
         <button
           onClick={handleDownload}
-          className="px-4 py-2 rounded-lg font-medium shadow-sm transition-colors w-1/2 mr-2"
-          style={{ backgroundColor: '#166534', color: '#ffffff' }}  // green-700
+          disabled={!qrReady}
+          className="px-4 py-2 rounded-lg font-medium shadow-sm transition-colors w-1/2 mr-2 disabled:opacity-50"
+          style={{ backgroundColor: '#166534', color: '#ffffff' }}
         >
           Descargar imagen
         </button>
@@ -156,7 +169,7 @@ export default function UserQR() {
         <button
           onClick={handleLogout}
           className="px-4 py-2 rounded-lg font-medium shadow-sm transition-colors w-1/2 ml-2"
-          style={{ backgroundColor: '#e53e3e', color: '#ffffff' }}  // rojo-600
+          style={{ backgroundColor: '#e53e3e', color: '#ffffff' }}
         >
           Cerrar sesión
         </button>
